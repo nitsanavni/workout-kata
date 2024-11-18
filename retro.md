@@ -1,4 +1,32 @@
-# Retro
+# retro
+
+## Diana
+
+- Share-worthy: using gitpod, sharing terminal, sharing chat, using the timer
+- Good at collaborating and coaching; resisting making corrections, letting things flow.
+- Challenge: being the "decider"
+- 
+
+## Nitsan
+- using tmux 
+- manage terminal sessions
+- start tmux session, then everyone attaches to that same session
+- this also makes it possible for everyone to see the chat,
+- because everyone can see the same terminal 
+
+
+## Gregor
+- I think the thing work sharing
+- how we improve the way we work together
+- example:  diana wanted to be able to share Chat
+- we added it
+- we have other ideas too and 
+- if we keep going   then it will enhance the way work
+- Amazed how ChatGPT derived the manual test cases from the code
+
+
+
+# Mini Retro
 
 ## Diana
 - I wish for a way for us to share a ChatGPT session, like we share gitpod
