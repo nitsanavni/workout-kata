@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 import time
-
+from workout_4oMini import Metronome
 
 class TestMetronome(unittest.TestCase):
 
