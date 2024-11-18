@@ -1,0 +1,91 @@
+#!/bin/bash
+# Usage tips: 
+# To keep the costs low:
+# Do not have long conversations 
+
+# TODOs
+# - `chat -f function-def.json -f func2.json PROMPT`: to use function calling
+# - `chat -e PROMPT`: execute commands on host in a loop
+# - stream the responses, when tty
+#   we should probably port to python first, see https://cookbook.openai.com/examples/how_to_stream_completions
+# - when starting a new conversation (i.e. CONTINUE eq false), save the previous one
+#   to `~/.chat-${epoch}`, or use gpt-3 to give it a title `~/.chat-${title}`
+# - `chat --ls/-l`: list previous conversations
+#    can use fzf, with a pretty preview
+# - interactive prompt builder, file chooser (fzf), line-range chooser
+# - ~/.chat should be a folder
+# - ~/.chatrc
+
+CHAT_FILE="$HOME/.chat"
+
+MODEL="gpt-4o-2024-08-06"
+API_URL="https://api.openai.com/v1/chat/completions"
+
+CONTINUE=false
+SHOW_CONVERSATION=false
+
+while getopts ":csm:" opt; do
+    case $opt in
+    m)
+        MODEL="$OPTARG"
+        ;;
+    c)
+        CONTINUE=true
+        ;;
+    s)
+        SHOW_CONVERSATION=true
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+if $SHOW_CONVERSATION; then
+    jq -r '.[]|("# "+.role,"",.content,"","")' "$CHAT_FILE" | bat -l md --style plain
+    exit 0
+fi
+
+USER_MESSAGE="$*"
+
+# Read from stdin if it's not a terminal
+if [ ! -t 0 ]; then
+    STDIN_INPUT=$(cat)
+    USER_MESSAGE="${STDIN_INPUT}\n\n${USER_MESSAGE}"
+fi
+
+if $CONTINUE && [ -s "$CHAT_FILE" ]; then
+    OLD_CONVERSATION_JSON=$(<"$CHAT_FILE")
+else
+    OLD_CONVERSATION_JSON="[]"
+fi
+
+OLD_CONVERSATION_JSON=$(echo "$OLD_CONVERSATION_JSON" |
+    jq --arg msg "$USER_MESSAGE" '. + [{"role": "system", "content": "short answers" }, {"role": "user", "content": $msg}]')
+
+read -r -d '' PAYLOAD <<-EOM
+{
+   "model": "$MODEL",
+   "messages": $OLD_CONVERSATION_JSON
+}
+EOM
+
+# call the OpenAI API
+RESPONSE=$(curl -sS "$API_URL" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $OPENAI_API_KEY" \
+    --data "$PAYLOAD")
+
+ASSISTANT_MESSAGE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+
+# save the assistant's response to the chat file
+echo "$OLD_CONVERSATION_JSON" |
+    jq --arg msg "$ASSISTANT_MESSAGE" \
+        '. + [{"role": "assistant", "content": $msg}]' >"$CHAT_FILE"
+
+# print GPT's response
+echo "$RESPONSE" |
+    jq -r '(.choices[0].message.content,.error.message)//empty' |
+    (bat -l md --file-name GPT --style plain --paging=never - || cat -)

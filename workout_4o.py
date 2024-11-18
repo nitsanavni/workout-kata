@@ -1,5 +1,5 @@
 import time
-
+import curses
 
 class TimerBPMTracker:
     def __init__(self):
